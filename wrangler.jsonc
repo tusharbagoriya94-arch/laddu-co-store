@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Worker name = the free URL: https://laddu-co-store.<your-subdomain>.workers.dev
+  "name": "laddu-co-store",
+  "main": "dist/server/server.js",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Static files (images, JS, CSS) are served straight from dist/client.
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "none"
+  },
+
+  // Orders database. Create it in Cloudflare (D1 → Create → name "laddu-co-db")
+  // and paste its Database ID below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "laddu-co-db",
+      "database_id": "PASTE-YOUR-D1-DATABASE-ID-HERE",
+      "migrations_dir": "migrations"
+    }
+  ]
+
+  // Secrets (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
+  // BREVO_API_KEY, MAIL_FROM, OWNER_EMAIL, ADMIN_PASSWORD) are NOT written here.
+  // Add them in Cloudflare → Worker → Settings → Variables and secrets.
+}
