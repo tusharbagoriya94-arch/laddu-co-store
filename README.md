@@ -5,13 +5,8 @@ Runs on Cloudflare Workers (free plan) with a Cloudflare D1 database for orders.
 
 ## Deploy on Cloudflare (step by step)
 
-### 1. Create the orders database
-1. Log in at https://dash.cloudflare.com
-2. Left menu: **Storage & databases → D1 SQL database → Create database**
-3. Name: `laddu-co-db` → **Create**
-4. Copy the **Database ID** shown on the next page.
-5. In this repo, open `wrangler.jsonc` on GitHub (pencil icon to edit), replace `PASTE-YOUR-D1-DATABASE-ID-HERE` with that ID, and **Commit changes**.
-
+### 1. Orders database
+Already done: the D1 database `laddu-co-db` exists and its ID is in `wrangler.jsonc`.
 The `orders` table is created automatically on the first visit, so no SQL step is needed.
 
 ### 2. Connect GitHub and deploy

@@ -20,7 +20,7 @@
     {
       "binding": "DB",
       "database_name": "laddu-co-db",
-      "database_id": "PASTE-YOUR-D1-DATABASE-ID-HERE",
+      "database_id": "72e9bcc6-6314-41d3-9bc9-e9e8d9f9f77d",
       "migrations_dir": "migrations"
     }
   ]
