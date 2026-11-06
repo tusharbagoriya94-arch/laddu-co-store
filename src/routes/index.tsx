@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 
 import { Page, ProductArt, QtyStepper } from "../components/shell";
 import { useCart } from "../lib/cart";
-import { DELIVERY_FEE, PRODUCTS, RAJASTHAN_ONLY, rs } from "../lib/store";
+import { BUSINESS, DELIVERY_FEE, FREE_DELIVERY_FROM, PRODUCTS, RAJASTHAN_ONLY, rs } from "../lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({ links: [{ rel: "canonical", href: "/" }] }),
@@ -68,7 +68,7 @@ function ProductCard({ id }: { id: (typeof PRODUCTS)[number]["id"] }) {
         <div className="buy">
           <span className="price">
             {rs(p.price)}
-            <small>{p.pack}</small>
+            <small>{p.pack} · MRP (incl. of all taxes)</small>
           </span>
           {ready && qty > 0 ? (
             <QtyStepper value={qty} onChange={(v) => setQty(p.id, v)} label={p.name} />
@@ -103,7 +103,7 @@ function Home() {
             </div>
             <div className="points">
               <span><Check />Seedha ghar tak delivery</span>
-              <span><Check />Tyohar ke liye gift box</span>
+              <span><Check />{rs(FREE_DELIVERY_FROM)} se upar free delivery</span>
               <span><Check />UPI, card se surakshit payment</span>
             </div>
           </div>
@@ -120,7 +120,7 @@ function Home() {
             <p className="eyebrow">Hamare products</p>
             <h2>Do cheezein, ek hi recipe</h2>
             <p>
-              Pack chuniye, cart mein daaliye aur online pay kariye. Delivery charge {rs(DELIVERY_FEE)} har order par.
+              Pack chuniye, cart mein daaliye aur online pay kariye. Delivery charge {rs(DELIVERY_FEE)}; {rs(FREE_DELIVERY_FROM)} ya usse zyada ke order par delivery free.
               {RAJASTHAN_ONLY ? " Abhi delivery Rajasthan mein ho rahi hai." : ""}
             </p>
           </div>
@@ -129,6 +129,9 @@ function Home() {
               <ProductCard key={p.id} id={p.id} />
             ))}
           </div>
+          <p className="product-decl">
+            Marketed by: {BUSINESS.legalName}, {BUSINESS.address} · FSSAI Reg. No. {BUSINESS.fssai} · Country of origin: {BUSINESS.countryOfOrigin} · Customer care: <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`}>{BUSINESS.phone}</a>, <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
+          </p>
           <div className="products-cta">
             <Link to="/checkout" className="btn-solid">Checkout par jaayein</Link>
           </div>
@@ -171,7 +174,7 @@ function Home() {
             <h2>Teen aasaan steps</h2>
           </div>
           <ol className="steps">
-            <li><div><h3>Pack chuniye</h3><p>Laddu, mathri ya gift box cart mein daaliye.</p></div></li>
+            <li><div><h3>Pack chuniye</h3><p>Laddu, mathri ya combo cart mein daaliye.</p></div></li>
             <li><div><h3>Pata bhariye aur pay kariye</h3><p>UPI, card ya netbanking se surakshit online payment.</p></div></li>
             <li><div><h3>Order confirm</h3><p>Turant "order placed" ka message aur email. Dispatch hote hi tracking number email par.</p></div></li>
           </ol>

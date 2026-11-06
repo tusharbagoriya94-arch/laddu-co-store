@@ -13,50 +13,51 @@ export type Product = {
   specs: [string, string][];
 };
 
-// PLACEHOLDER PRICES: change these to the final prices before launch.
+// Prices in rupees (MRP, incl. of all taxes). Set by Tushar, 6 Nov 2026.
 export const PRODUCTS: Product[] = [
   {
     id: "laddu",
     name: "Laddu",
-    pack: "6 laddu ka dabba",
-    price: 299,
+    pack: "1 laddu",
+    price: 149,
     desc: "Dheemi aanch par bhuna, desi ghee mein bandha, upar se chamakti shakkar.",
     specs: [
       ["Size", "Lagbhag 5.5 cm"],
       ["Ghee", "Shuddh desi ghee"],
-      ["Pack", "6 pieces"],
+      ["Net quantity", "1 piece"],
       ["Label", "Batch no. + nutrition"],
     ],
   },
   {
     id: "mathri",
     name: "Mathri",
-    pack: "4 mathri ka pack",
-    price: 249,
+    pack: "1 mathri",
+    price: 139,
     desc: "Badi, mothi aur khasta. Elaichi wali meethi mathri, desi ghee mein tali.",
     specs: [
       ["Size", "Lagbhag 14 cm"],
       ["Swaad", "Meetha, elaichi wala"],
-      ["Pack", "4 pieces"],
+      ["Net quantity", "1 piece"],
       ["Label", "Batch no. + nutrition"],
     ],
   },
   {
     id: "combo",
-    name: "Gift box",
-    pack: "6 laddu + 2 mathri",
-    price: 449,
-    desc: "Dono ek saath. Ghar walon ko bhejne ya tyohar par dene ke liye.",
+    name: "Combo",
+    pack: "1 laddu + 1 mathri",
+    price: 259,
+    desc: "Laddu aur mathri ek saath, alag-alag lene se ₹29 kam mein.",
     specs: [
-      ["Laddu", "6 pieces"],
-      ["Mathri", "2 pieces"],
-      ["Packing", "Gift box"],
+      ["Laddu", "1 piece"],
+      ["Mathri", "1 piece"],
+      ["Net quantity", "2 pieces"],
     ],
   },
 ];
 
-// Flat delivery charge per order, in rupees (placeholder).
-export const DELIVERY_FEE = 60;
+// Delivery charge per order, in rupees. Free when the products total reaches FREE_DELIVERY_FROM.
+export const DELIVERY_FEE = 40;
+export const FREE_DELIVERY_FROM = 500;
 
 // true until GST registration is done: only Rajasthan PIN codes can order.
 // Set to false to open delivery to all of India.
@@ -70,8 +71,10 @@ export const BUSINESS = {
   address: "Near Meera Circle, Mandphiya (Sanwaliya Ji), Bhadesar, Chittorgarh, Rajasthan 312027",
   shortAddress: "Sanwariya Ji, Chittorgarh, Rajasthan",
   email: "tusharbagoriya94@gmail.com",
-  phone: "", // add the customer-care number here, e.g. "+91 98765 43210"
+  phone: "+91 80005 01112",
   fssai: "22226028000792",
+  countryOfOrigin: "India",
+  grievanceOfficer: { name: "Tushar Bagoriya", designation: "Proprietor" },
   instagram: "laddu_co",
 };
 
@@ -123,7 +126,7 @@ export function priceCart(cart: Cart) {
     itemsTotal += sub;
     lines.push({ id: p.id, name: p.name, pack: p.pack, qty, price: p.price, sub });
   }
-  const delivery = itemsTotal > 0 ? DELIVERY_FEE : 0;
+  const delivery = itemsTotal > 0 && itemsTotal < FREE_DELIVERY_FROM ? DELIVERY_FEE : 0;
   return { lines, itemsTotal, delivery, total: itemsTotal + delivery };
 }
 
@@ -136,6 +139,10 @@ export function normalizePhone(raw: string) {
   if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
   if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
   return d;
+}
+
+export function deliveryLabel(n: number) {
+  return n === 0 ? "Free" : rs(n);
 }
 
 export function rs(n: number) {

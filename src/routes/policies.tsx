@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Page } from "../components/shell";
-import { BUSINESS, DELIVERY_FEE, INDEPENDENT_LINE, RAJASTHAN_ONLY, RECIPE_NOTE, rs } from "../lib/store";
+import { BUSINESS, DELIVERY_FEE, FREE_DELIVERY_FROM, INDEPENDENT_LINE, RAJASTHAN_ONLY, RECIPE_NOTE, rs } from "../lib/store";
 
 export const Route = createFileRoute("/policies")({
   head: () => ({
@@ -20,13 +20,14 @@ function Policies() {
       <section className="checkout-page">
         <div className="wrap narrow policy">
           <h1 className="checkout-title">Policies</h1>
-          <p className="muted">Last updated: 4 November 2026. LADDU.CO is a brand of {BUSINESS.legalName}.</p>
+          <p className="muted">Last updated: 6 November 2026. LADDU.CO is a brand of {BUSINESS.legalName}.</p>
           <nav className="policy-nav" aria-label="Policies">
             <a href="#shipping">Shipping</a>
             <a href="#refund">Refund and cancellation</a>
             <a href="#privacy">Privacy</a>
             <a href="#terms">Terms</a>
             <a href="#contact">Contact us</a>
+            <a href="#grievance">Grievance officer</a>
           </nav>
 
           <h2 id="shipping">Shipping policy</h2>
@@ -38,7 +39,7 @@ function Policies() {
             </li>
             <li>Orders are freshly packed and dispatched within 1 to 2 working days of payment.</li>
             <li>Delivery usually takes 2 to 5 working days after dispatch, depending on the PIN code.</li>
-            <li>A flat delivery charge of {rs(DELIVERY_FEE)} applies to every order and is shown before payment.</li>
+            <li>Delivery charge is {rs(DELIVERY_FEE)} per order. Delivery is free when the products total is {rs(FREE_DELIVERY_FROM)} or more. The charge is shown before payment.</li>
             <li>The tracking number is emailed to you when the parcel is dispatched.</li>
             <li>Please give a correct address and an active mobile number. Parcels returned because of a wrong address or a refused delivery cannot be refunded, as food cannot be resold.</li>
           </ul>
@@ -74,12 +75,17 @@ function Policies() {
             <b>{BUSINESS.legalName}</b> (brand: LADDU.CO)<br />
             {BUSINESS.address}<br />
             Email: <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
-            {BUSINESS.phone ? (
-              <>
-                <br />Phone: {BUSINESS.phone}
-              </>
-            ) : null}
+            <br />Phone / WhatsApp: <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`}>{BUSINESS.phone}</a>
             <br />FSSAI Reg. No. {BUSINESS.fssai}
+            <br />Country of origin of products: {BUSINESS.countryOfOrigin}
+          </p>
+
+          <h2 id="grievance">Grievance officer</h2>
+          <p>
+            As required by the Consumer Protection (E-Commerce) Rules, 2020:<br />
+            <b>{BUSINESS.grievanceOfficer.name}</b>, {BUSINESS.grievanceOfficer.designation}, {BUSINESS.legalName}<br />
+            Phone: {BUSINESS.phone} · Email: <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a><br />
+            We acknowledge every complaint within 48 hours and resolve it within one month of receipt.
           </p>
         </div>
       </section>

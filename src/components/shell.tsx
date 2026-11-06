@@ -64,6 +64,8 @@ export function Footer() {
             </ul>
             <h4 className="foot-h4-gap">Sampark</h4>
             <ul>
+              <li><a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`}>{BUSINESS.phone}</a></li>
+              <li><a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a></li>
               <li><a href={`https://instagram.com/${BUSINESS.instagram}`} target="_blank" rel="noopener noreferrer">Instagram: @{BUSINESS.instagram}</a></li>
             </ul>
           </div>
@@ -75,6 +77,7 @@ export function Footer() {
               <li><Link to="/policies" hash="privacy">Privacy policy</Link></li>
               <li><Link to="/policies" hash="terms">Terms</Link></li>
               <li><Link to="/policies" hash="contact">Contact us</Link></li>
+              <li><Link to="/policies" hash="grievance">Grievance officer</Link></li>
             </ul>
           </div>
         </div>

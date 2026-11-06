@@ -294,3 +294,7 @@ body.site-body { margin: 0; background: var(--cream); color: var(--ink); font-fa
 .legal .fine { flex-basis: 100%; font-size: 13px; opacity: .85; }
 .foot-h4-gap { margin-top: 22px !important; }
 @media (max-width: 640px) { .hero .since { font-size: 24px; } .hero .since::before { width: 32px; } }
+
+.product-decl { max-width: 900px; margin: 28px auto 0; text-align: center; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.product-decl a { color: inherit; }
+.free-hint { margin: 4px 0 8px; font-size: 13px; color: var(--muted); }

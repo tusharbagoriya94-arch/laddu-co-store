@@ -97,7 +97,7 @@ function OrderPage() {
                   <span>{rs(l.sub)}</span>
                 </li>
               ))}
-              <li><span>Delivery</span><span>{rs(o.delivery)}</span></li>
+              <li><span>Delivery</span><span>{o.delivery === 0 ? "Free" : rs(o.delivery)}</span></li>
               <li className="order-total"><span>Total</span><span>{rs(o.total)}</span></li>
             </ul>
             <div className="order-address">

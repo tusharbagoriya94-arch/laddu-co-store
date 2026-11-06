@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Page, ProductArt, QtyStepper } from "../components/shell";
 import { confirmPayment, startCheckout } from "../lib/api/checkout.functions";
 import { useCart } from "../lib/cart";
-import { BUSINESS, RAJASTHAN_ONLY, STATES, isRajasthanPin, normalizePhone, rs } from "../lib/store";
+import { BUSINESS, FREE_DELIVERY_FROM, RAJASTHAN_ONLY, STATES, deliveryLabel, isRajasthanPin, normalizePhone, rs } from "../lib/store";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -230,7 +230,7 @@ function Checkout() {
           <div className="wrap">
             <div className="notice-card">
               <h1>Aapka cart khaali hai</h1>
-              <p>Laddu, mathri ya gift box chuniye aur yahan wapas aaiye.</p>
+              <p>Laddu, mathri ya combo chuniye aur yahan wapas aaiye.</p>
               <a href="/#products" className="btn-solid">Products dekhiye</a>
             </div>
           </div>
@@ -303,7 +303,10 @@ function Checkout() {
                 ))}
               </ul>
               <div className="summary-row"><span>Products</span><span>{rs(priced.itemsTotal)}</span></div>
-              <div className="summary-row"><span>Delivery</span><span>{rs(priced.delivery)}</span></div>
+              <div className="summary-row"><span>Delivery</span><span>{deliveryLabel(priced.delivery)}</span></div>
+              {priced.itemsTotal > 0 && priced.delivery > 0 ? (
+                <p className="free-hint">{rs(FREE_DELIVERY_FROM - priced.itemsTotal)} ka aur saaman jodiye, delivery free ho jaayegi.</p>
+              ) : null}
               <div className="summary-total"><span>Total</span><strong>{rs(priced.total)}</strong></div>
 
               <label className="agree">

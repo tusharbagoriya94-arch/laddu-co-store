@@ -90,7 +90,7 @@ function itemsTable(o: OrderForEmail) {
     .join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;border-top:1px solid #EAD9C8;border-bottom:1px solid #EAD9C8;margin:12px 0">
 ${rows}
-<tr><td style="padding:6px 0;color:#6E544A">Delivery</td><td align="right" style="padding:6px 0">${rs(o.delivery)}</td></tr>
+<tr><td style="padding:6px 0;color:#6E544A">Delivery</td><td align="right" style="padding:6px 0">${o.delivery === 0 ? "Free" : rs(o.delivery)}</td></tr>
 <tr><td style="padding:8px 0;font-weight:bold">Total paid</td><td align="right" style="padding:8px 0;font-weight:bold">${rs(o.total)}</td></tr>
 </table>`;
 }
