@@ -70,7 +70,7 @@ export const BUSINESS = {
   legalName: "Sanwariya Sweets",
   address: "Near Meera Circle, Mandphiya (Sanwaliya Ji), Bhadesar, Chittorgarh, Rajasthan 312027",
   shortAddress: "Sanwariya Ji, Chittorgarh, Rajasthan",
-  email: "tusharbagoriya94@gmail.com",
+  email: "ladducosupport@gmail.com",
   phone: "+91 80005 01112",
   fssai: "22226028000792",
   countryOfOrigin: "India",

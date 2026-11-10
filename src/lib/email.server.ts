@@ -123,7 +123,7 @@ ${siteOrigin ? `<p style="font-size:14px;margin:16px 0 0"><a href="${esc(siteOri
   );
 
   const [customer, owner] = await Promise.all([
-    send({ email: o.email, name: o.name }, `Order placed: ${o.code} | LADDU.CO`, customerHtml, ownerEmail()),
+    send({ email: o.email, name: o.name }, `Order placed: ${o.code} | LADDU.CO`, customerHtml, BUSINESS.email),
     send({ email: ownerEmail(), name: "LADDU.CO orders" }, `Naya order ${o.code} · ${rs(o.total)} · ${o.name}, ${o.city}`, ownerHtml, o.email),
   ]);
   return { customer, owner };
@@ -140,5 +140,5 @@ export async function sendShippedEmail(o: OrderForEmail) {
 ${tracking}
 <p style="font-size:14px;line-height:1.6;color:#6E544A;margin:12px 0 0">Parcel mein kuch toota ya galat mile toh delivery ke 24 ghante ke andar photo ke saath is email ka reply kariye.</p>`,
   );
-  return send({ email: o.email, name: o.name }, `Shipped: ${o.code} | LADDU.CO`, html, ownerEmail());
+  return send({ email: o.email, name: o.name }, `Shipped: ${o.code} | LADDU.CO`, html, BUSINESS.email);
 }
