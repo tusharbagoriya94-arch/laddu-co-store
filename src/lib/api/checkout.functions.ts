@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { bindings } from "../bindings.server";
+import { cashfreeMode, cashfreePaidPaymentId, cashfreeReady, createCashfreeOrder } from "../cashfree.server";
+import { activeGateway } from "../gateway.server";
 import { insertOrder, markPaid, type OrderRow } from "../orders.server";
-import { createRazorpayOrder, razorpayReady, verifyPaymentSignature } from "../razorpay.server";
+import { createRazorpayOrder, verifyPaymentSignature } from "../razorpay.server";
 import { secret } from "../secrets.server";
 import {
   MAX_QTY,
@@ -15,6 +17,8 @@ import {
   sanitizeCart,
   type PricedLine,
 } from "../store";
+
+const SITE_ORIGIN = "https://ladduco.in";
 
 type Fail = { ok: false; code: string; message: string };
 const fail = (code: string, message: string): Fail => ({ ok: false, code, message });
@@ -37,6 +41,7 @@ const customerSchema = z.object({
 const startSchema = z.object({
   cart: z.record(z.string(), z.number().int().min(0).max(MAX_QTY)),
   customer: customerSchema,
+  origin: z.string().max(200).optional(),
 });
 
 export const startCheckout = createServerFn({ method: "POST" })
@@ -58,7 +63,8 @@ export const startCheckout = createServerFn({ method: "POST" })
     if (RAJASTHAN_ONLY && (!isRajasthanPin(c.pin) || c.state !== "Rajasthan")) {
       return fail("area", "Abhi online delivery sirf Rajasthan mein ho rahi hai. Jaldi hi poore India mein shuru karenge.");
     }
-    if (!razorpayReady()) {
+    const gateway = activeGateway();
+    if (!gateway) {
       return fail("payments_off", "Online payment abhi setup ho raha hai. Kripya thodi der baad try kariye.");
     }
 
@@ -77,6 +83,36 @@ export const startCheckout = createServerFn({ method: "POST" })
       gift_message: c.giftMessage ?? "",
     });
 
+    if (gateway === "cashfree") {
+      const origin = cleanOrigin(data.origin ?? "");
+      let sessionId: string;
+      try {
+        sessionId = await createCashfreeOrder({
+          code,
+          amountRupees: priced.total,
+          customer: { name: c.name, email: c.email.toLowerCase(), phone },
+          returnUrl: origin ? `${origin}/order/${code}?t=${token}` : "",
+          notifyUrl: origin.startsWith("https://") ? `${origin}/api/cashfree-webhook` : "",
+        });
+      } catch (error) {
+        console.error(error);
+        await DB.prepare("UPDATE orders SET status = 'failed', note = 'cashfree order create failed' WHERE code = ?")
+          .bind(code)
+          .run();
+        return fail("cf", "Payment shuru nahi ho paya. Kripya dobara try kariye.");
+      }
+      // For Cashfree the gateway order id is our own order code.
+      await DB.prepare("UPDATE orders SET rzp_order_id = ? WHERE code = ?").bind(code, code).run();
+      return {
+        ok: true as const,
+        gateway: "cashfree" as const,
+        code,
+        token,
+        sessionId,
+        mode: cashfreeMode(),
+      };
+    }
+
     let rzpOrderId: string;
     try {
       rzpOrderId = await createRazorpayOrder(priced.total * 100, code);
@@ -91,6 +127,7 @@ export const startCheckout = createServerFn({ method: "POST" })
 
     return {
       ok: true as const,
+      gateway: "razorpay" as const,
       code,
       token,
       rzpOrderId,
@@ -144,6 +181,8 @@ export type PublicOrder = {
   awb: string;
   trackingUrl: string;
   createdAt: string;
+  /** True when the customer came back from the payment page without paying. */
+  unpaid: boolean;
 };
 
 export const getPublicOrder = createServerFn({ method: "GET" })
@@ -151,8 +190,23 @@ export const getPublicOrder = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<{ ok: true; order: PublicOrder } | Fail> => {
     const { DB } = bindings();
     if (!DB || !data.t) return fail("not_found", "Order nahi mila.");
-    const row = await DB.prepare("SELECT * FROM orders WHERE code = ?").bind(data.code).first<OrderRow>();
+    let row = await DB.prepare("SELECT * FROM orders WHERE code = ?").bind(data.code).first<OrderRow>();
     if (!row || row.view_token !== data.t) return fail("not_found", "Order nahi mila.");
+
+    // Cashfree sends the customer back to this page; confirm the payment with Cashfree here.
+    let unpaid = false;
+    if (row.status === "pending" && row.rzp_order_id === row.code && cashfreeReady()) {
+      try {
+        const paymentId = await cashfreePaidPaymentId(row.code, row.total);
+        if (paymentId) {
+          row = (await markPaid(DB, row.code, paymentId, SITE_ORIGIN)) ?? row;
+        } else {
+          unpaid = true;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
     let items: PricedLine[] = [];
     try {
       items = JSON.parse(row.items_json) as PricedLine[];
@@ -179,6 +233,7 @@ export const getPublicOrder = createServerFn({ method: "GET" })
         awb: row.awb,
         trackingUrl: row.tracking_url,
         createdAt: row.created_at,
+        unpaid,
       },
     };
   });

@@ -17,6 +17,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderCodeRouteImport } from './routes/order.$code'
 import { Route as ApiRazorpayWebhookRouteImport } from './routes/api/razorpay-webhook'
+import { Route as ApiCashfreeWebhookRouteImport } from './routes/api/cashfree-webhook'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -58,6 +59,11 @@ const ApiRazorpayWebhookRoute = ApiRazorpayWebhookRouteImport.update({
   path: '/api/razorpay-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCashfreeWebhookRoute = ApiCashfreeWebhookRouteImport.update({
+  id: '/api/cashfree-webhook',
+  path: '/api/cashfree-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/policies': typeof PoliciesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
   '/order/$code': typeof OrderCodeRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/policies': typeof PoliciesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
   '/order/$code': typeof OrderCodeRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/policies': typeof PoliciesRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
   '/order/$code': typeof OrderCodeRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/policies'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
     | '/order/$code'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/policies'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
     | '/order/$code'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/policies'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
     | '/order/$code'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   PoliciesRoute: typeof PoliciesRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiCashfreeWebhookRoute: typeof ApiCashfreeWebhookRoute
   ApiRazorpayWebhookRoute: typeof ApiRazorpayWebhookRoute
   OrderCodeRoute: typeof OrderCodeRoute
 }
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRazorpayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cashfree-webhook': {
+      id: '/api/cashfree-webhook'
+      path: '/api/cashfree-webhook'
+      fullPath: '/api/cashfree-webhook'
+      preLoaderRoute: typeof ApiCashfreeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliciesRoute: PoliciesRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiCashfreeWebhookRoute: ApiCashfreeWebhookRoute,
   ApiRazorpayWebhookRoute: ApiRazorpayWebhookRoute,
   OrderCodeRoute: OrderCodeRoute,
 }

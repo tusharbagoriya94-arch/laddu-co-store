@@ -55,7 +55,7 @@ function Policies() {
           <h2 id="privacy">Privacy policy</h2>
           <ul>
             <li>We collect your name, mobile number, email and delivery address only to process and deliver your order and to contact you about it.</li>
-            <li>Payments are processed by Razorpay. We never see or store your card, UPI or bank details.</li>
+            <li>Payments are processed by Cashfree Payments, an RBI-authorised payment aggregator. We never see or store your card, UPI or bank details.</li>
             <li>We share your name, phone and address only with the courier delivering your parcel. We do not sell your data.</li>
             <li>To have your data deleted, email us at the address below.</li>
           </ul>

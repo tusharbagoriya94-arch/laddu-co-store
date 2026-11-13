@@ -26,6 +26,10 @@ Worker → **Settings → Variables and secrets → Add** (type: **Secret**) for
 | Name | Value |
 |---|---|
 | `ADMIN_PASSWORD` | A strong password for `/admin` |
+| `CASHFREE_APP_ID` | Cashfree Dashboard → Developers → API Keys (App ID). When set with the secret key, checkout uses Cashfree |
+| `CASHFREE_SECRET_KEY` | Same place as the App ID |
+| `CASHFREE_ENV` | `production` (default) or `sandbox` for test keys |
+| `PAYMENT_GATEWAY` | Optional. Set to `razorpay` to switch checkout back to Razorpay |
 | `RAZORPAY_KEY_ID` | Razorpay Dashboard → Account & Settings → API Keys (start with test keys) |
 | `RAZORPAY_KEY_SECRET` | Same place as the key ID |
 | `RAZORPAY_WEBHOOK_SECRET` | Any long random text; the same text goes into Razorpay Webhooks (step 4) |
@@ -35,7 +39,10 @@ Worker → **Settings → Variables and secrets → Add** (type: **Secret**) for
 
 Click **Deploy** after adding them.
 
-### 4. Razorpay webhook
+### 4. Cashfree
+Cashfree Dashboard → **Developers**: whitelist the site domain, and add a webhook with URL `https://<your-site>/api/cashfree-webhook` (payment success and failure events). The webhook is verified with `CASHFREE_SECRET_KEY`, so there is no separate webhook secret.
+
+### 4b. Razorpay webhook (only if using Razorpay)
 Razorpay Dashboard → **Account & Settings → Webhooks → Add new webhook**
 - URL: `https://<your-site>/api/razorpay-webhook`
 - Secret: the same text as `RAZORPAY_WEBHOOK_SECRET`

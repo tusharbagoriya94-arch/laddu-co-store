@@ -50,6 +50,7 @@ type RazorpayInstance = {
 declare global {
   interface Window {
     Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
+    Cashfree?: (options: { mode: "production" | "sandbox" }) => CashfreeInstance;
   }
 }
 
@@ -66,6 +67,22 @@ function loadRazorpay(): Promise<boolean> {
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
     s.async = true;
     s.dataset.razorpay = "1";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
+type CashfreeInstance = {
+  checkout: (options: { paymentSessionId: string; redirectTarget: "_self" }) => Promise<{ error?: { message?: string } }>;
+};
+
+function loadCashfree(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Cashfree) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    s.async = true;
     s.onload = () => resolve(true);
     s.onerror = () => resolve(false);
     document.body.appendChild(s);
@@ -153,11 +170,35 @@ function Checkout() {
             pin: form.pin.trim(),
             giftMessage: form.giftMessage.trim(),
           },
+          origin: window.location.origin,
         },
       });
       if (!res.ok) {
         setMessage(res.message);
         setBusy(false);
+        return;
+      }
+      if (res.gateway === "cashfree") {
+        const ok = await loadCashfree();
+        if (!ok || !window.Cashfree) {
+          setMessage("Payment page load nahi hua. Internet check karke dobara try kariye.");
+          setBusy(false);
+          return;
+        }
+        // The cart is cleared on the order page once the payment is confirmed.
+        try {
+          window.sessionStorage.setItem("lc_paying", res.code);
+        } catch {
+          // storage can be unavailable; the order still completes
+        }
+        const result = await window.Cashfree({ mode: res.mode }).checkout({
+          paymentSessionId: res.sessionId,
+          redirectTarget: "_self",
+        });
+        if (result?.error) {
+          setMessage(`Payment shuru nahi ho paya${result.error.message ? `: ${result.error.message}` : ""}. Dobara try kariye.`);
+          setBusy(false);
+        }
         return;
       }
       const loaded = await loadRazorpay();
@@ -322,7 +363,7 @@ function Checkout() {
               </button>
               {message ? <p className="form-message" role="alert">{message}</p> : null}
               <p className="secure-note">
-                Payment Razorpay ke surakshit page par: UPI, card, netbanking ya wallet. Payment ke baad turant order confirmation milega.
+                Payment surakshit page par: UPI, card, netbanking ya wallet. Payment ke baad turant order confirmation milega.
               </p>
               <p className="secure-note">{BUSINESS.legalName} · FSSAI {BUSINESS.fssai}</p>
             </aside>

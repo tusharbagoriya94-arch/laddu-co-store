@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { Page } from "../components/shell";
 import { getPublicOrder } from "../lib/api/checkout.functions";
+import { useCart } from "../lib/cart";
 import { STATUS_LABEL, rs } from "../lib/store";
 
 export const Route = createFileRoute("/order/$code")({
@@ -30,7 +31,23 @@ function OrderPage() {
   const res = Route.useLoaderData();
   const router = useRouter();
   const [checks, setChecks] = useState(0);
-  const pending = res.ok && res.order.status === "pending";
+  const { clear, ready } = useCart();
+  const unpaid = res.ok && res.order.status === "pending" && res.order.unpaid && checks >= 2;
+  const pending = res.ok && res.order.status === "pending" && !unpaid;
+  const confirmedCode = res.ok && !["pending", "failed", "cancelled"].includes(res.order.status) ? res.order.code : "";
+
+  // Empty the cart once, right after this browser's payment is confirmed.
+  useEffect(() => {
+    if (!confirmedCode || !ready) return;
+    try {
+      if (window.sessionStorage.getItem("lc_paying") === confirmedCode) {
+        window.sessionStorage.removeItem("lc_paying");
+        clear();
+      }
+    } catch {
+      // storage unavailable
+    }
+  }, [confirmedCode, ready, clear]);
 
   // If the payment is still being confirmed, re-check a few times.
   useEffect(() => {
@@ -69,6 +86,12 @@ function OrderPage() {
               <div className="spinner" aria-hidden="true" />
               <h1>Payment confirm ho raha hai...</h1>
               <p>Bas kuch second. Yeh page apne aap update ho jayega. Agar paisa kat gaya hai toh chinta mat kariye, order confirm ho jayega.</p>
+            </div>
+          ) : unpaid ? (
+            <div className="success-head">
+              <h1>Payment poora nahi hua</h1>
+              <p>Is order ka payment nahi mila. Aapka cart surakshit hai, checkout par jaakar dobara pay kar sakte hain. Agar paisa kat gaya hai toh chinta mat kariye, kuch minute mein order confirm ho jayega.</p>
+              <Link to="/checkout" className="btn-solid">Dobara pay karein</Link>
             </div>
           ) : o.status === "cancelled" ? (
             <div className="success-head">
@@ -115,7 +138,7 @@ function OrderPage() {
             ) : null}
           </div>
 
-          {!pending && o.status !== "cancelled" ? (
+          {!pending && !unpaid && o.status !== "cancelled" ? (
             <ol className="next-steps">
               <li><b>Aaj ya kal:</b> hum aapka order taaza pack karenge.</li>
               <li><b>Dispatch par:</b> tracking number aapke email par aayega.</li>

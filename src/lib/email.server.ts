@@ -113,7 +113,7 @@ ${siteOrigin ? `<p style="font-size:14px;margin:16px 0 0"><a href="${esc(siteOri
 
   const ownerHtml = shell(
     `Naya order ${o.code}: ${rs(o.total)}`,
-    `<p style="font-size:15px;margin:0 0 8px">Payment received${o.rzp_payment_id ? ` (Razorpay ${esc(o.rzp_payment_id)})` : ""}.</p>
+    `<p style="font-size:15px;margin:0 0 8px">Payment received${o.rzp_payment_id ? ` (payment ID ${esc(o.rzp_payment_id)})` : ""}.</p>
 ${itemsTable(o)}
 <p style="font-size:13px;color:#6E544A;margin:12px 0 4px">Ship to</p>
 ${addressBlock(o)}

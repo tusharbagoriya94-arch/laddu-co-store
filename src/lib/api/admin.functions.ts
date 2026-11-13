@@ -4,7 +4,7 @@ import { z } from "zod";
 import { bindings } from "../bindings.server";
 import { emailReady } from "../email.server";
 import { maybeSendShipped, trackingUrlFor, type OrderRow } from "../orders.server";
-import { razorpayReady } from "../razorpay.server";
+import { activeGateway } from "../gateway.server";
 import { safeEqual, secret } from "../secrets.server";
 
 type Fail = { ok: false; code: string; message: string };
@@ -26,8 +26,9 @@ export const adminLogin = createServerFn({ method: "POST" })
       ok: true as const,
       setup: {
         database: Boolean(bindings().DB),
-        payments: razorpayReady(),
-        webhook: Boolean(secret("RAZORPAY_WEBHOOK_SECRET")),
+        payments: activeGateway() !== null,
+        gateway: activeGateway() ?? "none",
+        webhook: activeGateway() === "cashfree" ? true : Boolean(secret("RAZORPAY_WEBHOOK_SECRET")),
         email: emailReady(),
       },
     };

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 const PW_KEY = "ladduco-admin-pw";
-type Setup = { database: boolean; payments: boolean; webhook: boolean; email: boolean };
+type Setup = { database: boolean; payments: boolean; gateway: string; webhook: boolean; email: boolean };
 
 function istTime(sqlUtc: string | null) {
   if (!sqlUtc) return "";
@@ -117,8 +117,8 @@ function Admin() {
             <b>Setup baaki hai:</b>
             <ul>
               <li className={setup.database ? "ok" : "bad"}>Database {setup.database ? "ready" : "not ready (deploy again)"}</li>
-              <li className={setup.payments ? "ok" : "bad"}>Razorpay keys {setup.payments ? "set" : "missing: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET"}</li>
-              <li className={setup.webhook ? "ok" : "bad"}>Razorpay webhook {setup.webhook ? "set" : "missing: RAZORPAY_WEBHOOK_SECRET"}</li>
+              <li className={setup.payments ? "ok" : "bad"}>Payment gateway {setup.payments ? `active: ${setup.gateway}` : "missing: CASHFREE_APP_ID, CASHFREE_SECRET_KEY"}</li>
+              <li className={setup.webhook ? "ok" : "bad"}>Payment webhook {setup.webhook ? "set" : "missing: RAZORPAY_WEBHOOK_SECRET"}</li>
               <li className={setup.email ? "ok" : "bad"}>Order emails {setup.email ? "set" : "missing: BREVO_API_KEY, MAIL_FROM"}</li>
             </ul>
           </div>
@@ -210,7 +210,7 @@ function OrderCard({ order, password, onSaved }: { order: AdminOrder; password: 
                 {order.name}<br />{order.address}<br />{order.city}, {order.state} {order.pin}<br />
                 <a href={`tel:+91${order.phone}`}>{order.phone}</a> · <a href={`mailto:${order.email}`}>{order.email}</a>
               </p>
-              <p className="muted small">Razorpay: {order.rzp_payment_id || "no payment yet"}</p>
+              <p className="muted small">Payment ID: {order.rzp_payment_id || "no payment yet"}</p>
             </div>
           </div>
           {editable ? (
