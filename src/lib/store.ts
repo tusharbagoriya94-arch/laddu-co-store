@@ -59,9 +59,9 @@ export const PRODUCTS: Product[] = [
 export const DELIVERY_FEE = 40;
 export const FREE_DELIVERY_FROM = 500;
 
-// true until GST registration is done: only Rajasthan PIN codes can order.
-// Set to false to open delivery to all of India.
-export const RAJASTHAN_ONLY = true;
+// true = only Rajasthan PIN codes can order (use while GST registration is pending).
+// false = delivery open to all of India.
+export const RAJASTHAN_ONLY = false;
 
 export const MAX_QTY = 20;
 

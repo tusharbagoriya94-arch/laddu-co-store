@@ -61,7 +61,7 @@ Update the webhook URL in Razorpay to the new domain.
 - Prices and packs: ₹299 / ₹249 / ₹449 are placeholders
 - `DELIVERY_FEE` (₹60 placeholder)
 - `BUSINESS.phone`: customer-care number
-- `RAJASTHAN_ONLY`: set to `false` after GST registration
+- `RAJASTHAN_ONLY`: `false` = delivery open to all of India (set `true` to limit orders to Rajasthan PIN codes)
 
 ## Run on your computer (optional)
 ```
