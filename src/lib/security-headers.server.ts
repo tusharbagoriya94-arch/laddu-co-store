@@ -7,13 +7,13 @@ export function applySecurityHeaders(response: Response): Response {
   headers.set(
     "Content-Security-Policy",
     "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://*.razorpay.com https://sdk.cashfree.com; " +
+      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://*.razorpay.com https://sdk.cashfree.com https://*.cashfree.com; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; media-src 'self' https:; " +
       "connect-src 'self' https:; " +
       "frame-src https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com https://*.cashfree.com; " +
-      "base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+      "base-uri 'self'; form-action 'self' https://*.cashfree.com; frame-ancestors 'self'",
   );
   headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   headers.set("X-Content-Type-Options", "nosniff");
