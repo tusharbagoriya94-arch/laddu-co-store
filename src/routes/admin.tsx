@@ -2,7 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { Wordmark } from "../components/shell";
-import { adminListOrders, adminLogin, adminUpdateOrder, type AdminOrder } from "../lib/api/admin.functions";
+import {
+  adminListOrders,
+  adminLogin,
+  adminMarkContacted,
+  adminRecovery,
+  adminUpdateOrder,
+  type AdminOrder,
+  type RecoveryItem,
+  type RecoveryStats,
+} from "../lib/api/admin.functions";
 import { STATUS_LABEL, rs } from "../lib/store";
 
 export const Route = createFileRoute("/admin")({
@@ -25,7 +34,7 @@ function Admin() {
   const [setup, setSetup] = useState<Setup | null>(null);
   const [error, setError] = useState("");
   const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [show, setShow] = useState<"active" | "all">("active");
+  const [show, setShow] = useState<"active" | "all" | "recover">("active");
   const [loading, setLoading] = useState(false);
 
   const login = useCallback(async (pw: string) => {
@@ -52,6 +61,7 @@ function Admin() {
   }, [login]);
 
   const load = useCallback(async () => {
+    if (show === "recover") return;
     setLoading(true);
     const res = await adminListOrders({ data: { password, show } });
     setLoading(false);
@@ -134,18 +144,27 @@ function Admin() {
           <div className="seg" role="group" aria-label="Filter">
             <button type="button" className={show === "active" ? "on" : ""} onClick={() => setShow("active")}>Paid orders</button>
             <button type="button" className={show === "all" ? "on" : ""} onClick={() => setShow("all")}>Sab (unpaid bhi)</button>
+            <button type="button" className={show === "recover" ? "on" : ""} onClick={() => setShow("recover")}>Payment adhoore</button>
           </div>
-          <button type="button" className="btn-line small" onClick={() => void load()} disabled={loading}>
-            {loading ? "Loading..." : "Refresh"}
-          </button>
+          {show !== "recover" ? (
+            <button type="button" className="btn-line small" onClick={() => void load()} disabled={loading}>
+              {loading ? "Loading..." : "Refresh"}
+            </button>
+          ) : null}
         </div>
         {error ? <p className="form-message" role="alert">{error}</p> : null}
-        {orders.length === 0 && !loading ? <p className="muted">Abhi koi order nahi hai.</p> : null}
-        <div className="admin-list">
-          {orders.map((o) => (
-            <OrderCard key={o.code} order={o} password={password} onSaved={load} />
-          ))}
-        </div>
+        {show === "recover" ? (
+          <RecoveryView password={password} />
+        ) : (
+          <>
+            {orders.length === 0 && !loading ? <p className="muted">Abhi koi order nahi hai.</p> : null}
+            <div className="admin-list">
+              {orders.map((o) => (
+                <OrderCard key={o.code} order={o} password={password} onSaved={load} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -257,6 +276,142 @@ function OrderCard({ order, password, onSaved }: { order: AdminOrder; password: 
           )}
         </div>
       ) : null}
+    </article>
+  );
+}
+
+// ---------- Payment adhoore (recovery) ----------
+
+function whyText(r: RecoveryItem) {
+  if (r.status === "failed") return "Payment page khul hi nahi paya (store ya Cashfree ki galti).";
+  const a = r.attempts;
+  if (!a) return "Cashfree se pata nahi chal paya.";
+  if (a.attempts === 0) return "Payment page par koi try nahi kiya, page chhod diya.";
+  const method = a.lastMethod ? ` (${a.lastMethod.replace(/_/g, " ")})` : "";
+  if (a.lastStatus === "USER_DROPPED") return `Payment shuru kiya${method}, beech mein chhod diya.`;
+  if (a.lastStatus === "PENDING") return `Payment pending${method}: bank se confirm hona baaki ho sakta hai. Message se pehle Cashfree check kariye.`;
+  if (a.lastStatus === "FAILED") return `Payment try kiya, fail hua${method}${a.lastError ? `: ${a.lastError}` : ""}.`;
+  return `Last attempt: ${a.lastStatus}${method}.`;
+}
+
+function paymentFailed(r: RecoveryItem) {
+  return r.status === "failed" || ((r.attempts?.attempts ?? 0) > 0 && r.attempts?.lastStatus === "FAILED");
+}
+
+function waMessage(r: RecoveryItem) {
+  const first = r.name.trim().split(/\s+/)[0] || r.name;
+  const items = r.items.map((l) => `${l.qty} × ${l.name}`).join(", ");
+  const help = paymentFailed(r)
+    ? "Lagta hai payment ke time koi dikkat aa gayi thi. Dobara try kar sakte hain, UPI ke alawa card ya netbanking se bhi ho jaata hai."
+    : "Koi dikkat aayi kya? Batayiye, hum madad kar denge.";
+  return `Namaste ${first} ji 🙏
+LADDU.CO se bol rahe hain. Aapne Seth ji ke laddu aur mathri ka order${items ? ` (${items})` : ""} shuru kiya tha, par payment poora nahi hua.
+${help}
+
+Yahan se wahi order seedha pay kar sakte hain, aapka pata pehle se bhara hai:
+${r.resumeLink}`;
+}
+
+function RecoveryView({ password }: { password: string }) {
+  const [items, setItems] = useState<RecoveryItem[]>([]);
+  const [stats, setStats] = useState<RecoveryStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const res = await adminRecovery({ data: { password } });
+    setLoading(false);
+    if (!res.ok) {
+      setError(res.message);
+      return;
+    }
+    setItems(res.items);
+    setStats(res.stats);
+  }, [password]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const recoveredN = stats?.recovered.reduce((s, r) => s + r.n, 0) ?? 0;
+  const recoveredAmt = stats?.recovered.reduce((s, r) => s + r.amount, 0) ?? 0;
+  const open = items.filter((i) => !i.contactedAt).length;
+
+  return (
+    <>
+      <div className="admin-stats">
+        <div><small>Abhi follow-up baaki</small><b>{open}</b></div>
+        <div><small>Reminder emails (30 din)</small><b>{stats?.emails30d ?? 0}</b></div>
+        <div><small>Wapas aaye orders (30 din)</small><b>{recoveredN} · {rs(recoveredAmt)}</b></div>
+      </div>
+      <p className="recover-help">
+        Pichle 7 din ke woh customers jinhone checkout bhara par payment nahi kiya (jo baad mein pay kar chuke, woh yahan nahi dikhte).
+        Website inhe apne aap 1 ghante aur 24 ghante baad email bhejti hai. WhatsApp button dabane par message taiyaar milega: apne
+        phone se ek-ek karke bhejiye, ek saath bulk mein nahi.
+      </p>
+      <div className="admin-tools">
+        <span className="muted small">{loading ? "Cashfree se check ho raha hai..." : `${items.length} customers`}</span>
+        <button type="button" className="btn-line small" onClick={() => void load()} disabled={loading}>
+          {loading ? "Loading..." : "Refresh"}
+        </button>
+      </div>
+      {error ? <p className="form-message" role="alert">{error}</p> : null}
+      {!loading && items.length === 0 ? <p className="muted">Koi adhoora payment nahi hai.</p> : null}
+      <div className="admin-list">
+        {items.map((r) => (
+          <RecoveryCard key={r.code} item={r} password={password} onChange={load} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RecoveryCard({ item: r, password, onChange }: { item: RecoveryItem; password: string; onChange: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const wa = `https://wa.me/91${r.phone}?text=${encodeURIComponent(waMessage(r))}`;
+  const emails = r.optedOut
+    ? "Customer ne reminder band kar diye"
+    : r.reminder2At
+      ? `2 email gaye (${istTime(r.reminder1At)}, ${istTime(r.reminder2At)})`
+      : r.reminder1At
+        ? `1 email gaya (${istTime(r.reminder1At)}), doosra 24 ghante par`
+        : Date.now() - new Date(r.createdAt.replace(" ", "T") + "Z").getTime() > 72 * 3600 * 1000
+          ? "Email nahi gaya (3 din se purana order)"
+          : "Pehla email 1 ghante par jayega";
+
+  async function toggle(contacted: boolean) {
+    setBusy(true);
+    await adminMarkContacted({ data: { password, code: r.code, contacted } });
+    setBusy(false);
+    await onChange();
+  }
+
+  return (
+    <article className={r.contactedAt ? "recover-card done" : "recover-card"}>
+      <div className="recover-top">
+        <b>{r.name}</b>
+        <span>{r.city}, {r.state}</span>
+        <span className="muted small">{r.code} · {istTime(r.createdAt)}</span>
+        <span className="amt">{rs(r.total)}</span>
+      </div>
+      <div className="recover-meta">
+        <span>{r.items.map((l) => `${l.qty} × ${l.name}`).join(", ")}</span>
+        <span>📞 {r.phone}</span>
+        <span>✉️ {r.email}</span>
+      </div>
+      <div className="recover-why"><b>Kya hua:</b> {whyText(r)}</div>
+      <div className="recover-meta"><span>Email: {emails}</span>{r.contactedAt ? <span>Contact kiya: {istTime(r.contactedAt)}</span> : null}</div>
+      <div className="recover-actions">
+        <a className="btn-wa" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp message</a>
+        <a className="btn-line small" href={`tel:+91${r.phone}`}>Call</a>
+        {r.contactedAt ? (
+          <button type="button" className="btn-line small" disabled={busy} onClick={() => void toggle(false)}>Undo</button>
+        ) : (
+          <button type="button" className="btn-line small" disabled={busy} onClick={() => void toggle(true)}>Contact ho gaya ✓</button>
+        )}
+      </div>
     </article>
   );
 }

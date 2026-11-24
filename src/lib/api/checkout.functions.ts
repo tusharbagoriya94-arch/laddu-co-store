@@ -6,6 +6,7 @@ import { cashfreeMode, cashfreePaidPaymentId, cashfreeReady, createCashfreeOrder
 import { activeGateway } from "../gateway.server";
 import { insertOrder, markPaid, type OrderRow } from "../orders.server";
 import { createRazorpayOrder, verifyPaymentSignature } from "../razorpay.server";
+import { loadResume, type ResumeData } from "../recovery.server";
 import { secret } from "../secrets.server";
 import {
   MAX_QTY,
@@ -42,6 +43,10 @@ const startSchema = z.object({
   cart: z.record(z.string(), z.number().int().min(0).max(MAX_QTY)),
   customer: customerSchema,
   origin: z.string().max(200).optional(),
+  // Set when the customer came from a "Dobara pay karein" reminder link.
+  resume: z
+    .object({ code: z.string().max(40), token: z.string().max(64), via: z.enum(["e1", "e2", "wa"]) })
+    .optional(),
 });
 
 export const startCheckout = createServerFn({ method: "POST" })
@@ -82,6 +87,17 @@ export const startCheckout = createServerFn({ method: "POST" })
       pin: c.pin,
       gift_message: c.giftMessage ?? "",
     });
+
+    if (data.resume) {
+      const old = await DB.prepare("SELECT view_token FROM orders WHERE code = ?")
+        .bind(data.resume.code)
+        .first<Pick<OrderRow, "view_token">>();
+      if (old && old.view_token === data.resume.token && data.resume.code !== code) {
+        await DB.prepare("UPDATE orders SET recovered_from = ?, recovered_via = ? WHERE code = ?")
+          .bind(data.resume.code, data.resume.via, code)
+          .run();
+      }
+    }
 
     if (gateway === "cashfree") {
       const origin = cleanOrigin(data.origin ?? "");
@@ -236,4 +252,13 @@ export const getPublicOrder = createServerFn({ method: "GET" })
         unpaid,
       },
     };
+  });
+
+// Reminder link: /checkout?resume=<code>&t=<token> refills the cart and the delivery details.
+export const getResumeOrder = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ code: z.string().max(40), t: z.string().max(64) }))
+  .handler(async ({ data }): Promise<ResumeData> => {
+    const { DB } = bindings();
+    if (!DB) return { ok: false, reason: "not_found" };
+    return loadResume(DB, data.code, data.t);
   });

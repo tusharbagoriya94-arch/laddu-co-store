@@ -16,6 +16,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderCodeRouteImport } from './routes/order.$code'
+import { Route as ApiStopRemindersRouteImport } from './routes/api/stop-reminders'
 import { Route as ApiRazorpayWebhookRouteImport } from './routes/api/razorpay-webhook'
 import { Route as ApiCashfreeWebhookRouteImport } from './routes/api/cashfree-webhook'
 
@@ -54,6 +55,11 @@ const OrderCodeRoute = OrderCodeRouteImport.update({
   path: '/order/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStopRemindersRoute = ApiStopRemindersRouteImport.update({
+  id: '/api/stop-reminders',
+  path: '/api/stop-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRazorpayWebhookRoute = ApiRazorpayWebhookRouteImport.update({
   id: '/api/razorpay-webhook',
   path: '/api/razorpay-webhook',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
+  '/api/stop-reminders': typeof ApiStopRemindersRoute
   '/order/$code': typeof OrderCodeRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
+  '/api/stop-reminders': typeof ApiStopRemindersRoute
   '/order/$code': typeof OrderCodeRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/cashfree-webhook': typeof ApiCashfreeWebhookRoute
   '/api/razorpay-webhook': typeof ApiRazorpayWebhookRoute
+  '/api/stop-reminders': typeof ApiStopRemindersRoute
   '/order/$code': typeof OrderCodeRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
+    | '/api/stop-reminders'
     | '/order/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
+    | '/api/stop-reminders'
     | '/order/$code'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/api/cashfree-webhook'
     | '/api/razorpay-webhook'
+    | '/api/stop-reminders'
     | '/order/$code'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiCashfreeWebhookRoute: typeof ApiCashfreeWebhookRoute
   ApiRazorpayWebhookRoute: typeof ApiRazorpayWebhookRoute
+  ApiStopRemindersRoute: typeof ApiStopRemindersRoute
   OrderCodeRoute: typeof OrderCodeRoute
 }
 
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stop-reminders': {
+      id: '/api/stop-reminders'
+      path: '/api/stop-reminders'
+      fullPath: '/api/stop-reminders'
+      preLoaderRoute: typeof ApiStopRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/razorpay-webhook': {
       id: '/api/razorpay-webhook'
       path: '/api/razorpay-webhook'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiCashfreeWebhookRoute: ApiCashfreeWebhookRoute,
   ApiRazorpayWebhookRoute: ApiRazorpayWebhookRoute,
+  ApiStopRemindersRoute: ApiStopRemindersRoute,
   OrderCodeRoute: OrderCodeRoute,
 }
 export const routeTree = rootRouteImport

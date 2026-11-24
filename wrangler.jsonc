@@ -23,7 +23,11 @@
       "database_id": "72e9bcc6-6314-41d3-9bc9-e9e8d9f9f77d",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+
+  // Every 15 minutes: "payment adhoora" reminder emails (1 h and 24 h after an unpaid checkout).
+  // See src/lib/recovery.server.ts.
+  "triggers": { "crons": ["*/15 * * * *"] }
 
   // Secrets (CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
   // BREVO_API_KEY, MAIL_FROM, OWNER_EMAIL, ADMIN_PASSWORD) are NOT written here.

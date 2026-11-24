@@ -18,13 +18,35 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_orders_rzp_order ON orders (rzp_order_id)`,
   `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status)`,
 ];
-type D1Like = { prepare: (sql: string) => { run: () => Promise<unknown> } };
+// Columns added later (24 Nov 2026, payment-reminder feature). Added only if missing,
+// so this is safe to run against the live database on every cold start.
+const EXTRA_COLUMNS: [string, string][] = [
+  ["reminder1_at", "TEXT"], // first "payment adhoora" email sent
+  ["reminder2_at", "TEXT"], // second (last) reminder email sent
+  ["contacted_at", "TEXT"], // Tushar marked the customer as contacted (WhatsApp / call)
+  ["recovered_from", "TEXT"], // this order was placed from a reminder link for that older order code
+  ["recovered_via", "TEXT"], // e1 / e2 = reminder email 1 / 2, wa = WhatsApp message
+];
+const EXTRA_SQL = [
+  `CREATE TABLE IF NOT EXISTS email_optout (email TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_email ON orders (email)`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_phone ON orders (phone)`,
+];
+type D1Like = {
+  prepare: (sql: string) => { run: () => Promise<unknown>; all: <T>() => Promise<{ results?: T[] }> };
+};
 function ensureSchema(env: unknown) {
   const db = (env as { DB?: D1Like } | undefined)?.DB;
   if (!db) return Promise.resolve();
   if (!schemaReady) {
     schemaReady = (async () => {
       for (const sql of SCHEMA) await db.prepare(sql).run();
+      const { results } = await db.prepare("PRAGMA table_info(orders)").all<{ name: string }>();
+      const have = new Set((results ?? []).map((c) => c.name));
+      for (const [name, type] of EXTRA_COLUMNS) {
+        if (!have.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
+      }
+      for (const sql of EXTRA_SQL) await db.prepare(sql).run();
     })().catch((e) => {
       schemaReady = undefined;
       console.error("schema setup failed", e);
@@ -81,5 +103,18 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
+  },
+
+  // Cron trigger (wrangler.jsonc → triggers.crons, every 15 minutes):
+  // sends the 1 h and 24 h "payment adhoora" reminder emails.
+  async scheduled(_controller: unknown, env: unknown, ctx: { waitUntil: (p: Promise<unknown>) => void }) {
+    ctx.waitUntil(
+      (async () => {
+        await ensureSchema(env);
+        const { runPaymentReminders } = await import("./lib/recovery.server");
+        const result = await runPaymentReminders();
+        console.log("payment reminders", JSON.stringify(result));
+      })().catch((e) => console.error("payment reminders failed", e)),
+    );
   },
 };

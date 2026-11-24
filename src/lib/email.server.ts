@@ -81,7 +81,7 @@ ${esc(BUSINESS.legalName)} · FSSAI Reg. No. ${BUSINESS.fssai}<br>${esc(INDEPEND
 </td></tr></table></td></tr></table></body></html>`;
 }
 
-function itemsTable(o: OrderForEmail) {
+function itemsTable(o: OrderForEmail, totalLabel = "Total paid") {
   const rows = o.items
     .map(
       (l) =>
@@ -91,7 +91,7 @@ function itemsTable(o: OrderForEmail) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;border-top:1px solid #EAD9C8;border-bottom:1px solid #EAD9C8;margin:12px 0">
 ${rows}
 <tr><td style="padding:6px 0;color:#6E544A">Delivery</td><td align="right" style="padding:6px 0">${o.delivery === 0 ? "Free" : rs(o.delivery)}</td></tr>
-<tr><td style="padding:8px 0;font-weight:bold">Total paid</td><td align="right" style="padding:8px 0;font-weight:bold">${rs(o.total)}</td></tr>
+<tr><td style="padding:8px 0;font-weight:bold">${esc(totalLabel)}</td><td align="right" style="padding:8px 0;font-weight:bold">${rs(o.total)}</td></tr>
 </table>`;
 }
 
@@ -141,4 +141,36 @@ ${tracking}
 <p style="font-size:14px;line-height:1.6;color:#6E544A;margin:12px 0 0">Parcel mein kuch toota ya galat mile toh delivery ke 24 ghante ke andar photo ke saath is email ka reply kariye.</p>`,
   );
   return send({ email: o.email, name: o.name }, `Shipped: ${o.code} | LADDU.CO`, html, BUSINESS.email);
+}
+
+// "Payment adhoora" reminders for customers who left the Cashfree page without paying.
+// stage 1 = about 1 hour later, stage 2 = about 24 hours later (the last one).
+export async function sendPaymentReminder(o: OrderForEmail, stage: 1 | 2, resumeUrl: string, stopUrl: string) {
+  const first = o.name.trim().split(/\s+/)[0] || o.name;
+  const button = `<p style="margin:18px 0"><a href="${esc(resumeUrl)}" style="display:inline-block;background:#6F262D;color:#FDF6E6;padding:12px 22px;border-radius:6px;text-decoration:none;font-size:16px">Dobara pay karein</a></p>`;
+  const help = `<p style="font-size:14px;line-height:1.6;color:#6E544A;margin:12px 0 0">Payment mein koi dikkat aayi? Is email ka reply kariye ya ${esc(BUSINESS.phone)} par call kariye, hum madad kar denge.</p>`;
+  const stop = `<p style="font-size:12px;color:#6E544A;margin:16px 0 0">Reminder nahi chahiye? <a href="${esc(stopUrl)}" style="color:#6E544A">Yahan click kariye</a>.</p>`;
+
+  const body =
+    stage === 1
+      ? `<p style="font-size:15px;line-height:1.6;margin:0 0 8px">Namaste ${esc(first)} ji, aapne Seth ji ke laddu aur mathri ka order shuru kiya tha, par payment poora nahi hua.</p>
+<p style="font-size:15px;line-height:1.6;margin:0 0 8px">Aapka order humne sambhal kar rakha hai. Neeche button dabaiye, aapka pata aur saaman pehle se bhara milega, bas pay karna hai.</p>
+${itemsTable(o, "Total")}
+${button}${help}${stop}`
+      : `<p style="font-size:15px;line-height:1.6;margin:0 0 8px">Namaste ${esc(first)} ji, aapka LADDU.CO order abhi bhi adhoora hai.</p>
+<p style="font-size:15px;line-height:1.6;margin:0 0 4px">Aapke liye kuch baatein:</p>
+<ul style="font-size:15px;line-height:1.6;margin:0 0 8px;padding-left:20px">
+<li>Saaf-suthre, professional unit mein bane</li>
+<li>Har pack par batch no. aur nutrition jaankari</li>
+<li>Delivery poore India mein</li>
+<li>Payment Cashfree ke surakshit page par: UPI, card ya netbanking</li>
+</ul>
+${itemsTable(o, "Total")}
+${button}${help}
+<p style="font-size:13px;color:#6E544A;margin:12px 0 0">Yeh is order ka aakhri reminder hai.</p>${stop}`;
+
+  const subject =
+    stage === 1 ? "Aapka Seth ji ka dabba ruka hua hai | LADDU.CO" : `Aapka order ${o.code} abhi adhoora hai | LADDU.CO`;
+  const title = stage === 1 ? "Aapka payment poora nahi hua" : "Seth ji ke laddu aapka intezaar kar rahe hain";
+  return send({ email: o.email, name: o.name }, subject, shell(title, body), BUSINESS.email);
 }

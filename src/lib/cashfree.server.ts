@@ -82,6 +82,42 @@ export async function cashfreePaidPaymentId(code: string, expectedRupees: number
   return "cashfree";
 }
 
+export type CashfreeAttempts = {
+  /** Cashfree shows a successful payment (confirm with cashfreePaidPaymentId before trusting it). */
+  paid: boolean;
+  /** Number of payment attempts the customer made on Cashfree's page. */
+  attempts: number;
+  /** Last attempt: FAILED, USER_DROPPED, PENDING, ... */
+  lastStatus: string;
+  /** Last attempt's method group: upi, credit_card, net_banking, ... */
+  lastMethod: string;
+  lastError: string;
+};
+
+// What happened on Cashfree's payment page for this order: did the customer try to pay, and
+// why did it fail? One API call. Returns null if Cashfree can't be reached.
+export async function cashfreeAttempts(code: string): Promise<CashfreeAttempts | null> {
+  const res = await fetch(`${base()}/orders/${encodeURIComponent(code)}/payments`, { headers: headers() });
+  if (!res.ok) return null;
+  const list = (await res.json()) as {
+    payment_status?: string;
+    payment_group?: string;
+    payment_message?: string;
+    payment_time?: string;
+    error_details?: { error_description?: string; error_reason?: string } | null;
+  }[];
+  if (!Array.isArray(list)) return null;
+  const sorted = [...list].sort((a, b) => String(a.payment_time ?? "").localeCompare(String(b.payment_time ?? "")));
+  const last = sorted[sorted.length - 1];
+  return {
+    paid: list.some((p) => p.payment_status === "SUCCESS"),
+    attempts: list.length,
+    lastStatus: last?.payment_status ?? "",
+    lastMethod: last?.payment_group ?? "",
+    lastError: (last?.error_details?.error_description || last?.payment_message || "").slice(0, 160),
+  };
+}
+
 // Webhook: signature = base64(HMAC_SHA256(timestamp + raw body, secret key))
 export async function verifyCashfreeWebhook(timestamp: string, rawBody: string, signature: string) {
   const key = secret("CASHFREE_SECRET_KEY");

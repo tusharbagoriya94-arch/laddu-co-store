@@ -1,12 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { Page, ProductArt, QtyStepper } from "../components/shell";
-import { confirmPayment, startCheckout } from "../lib/api/checkout.functions";
+import { confirmPayment, getResumeOrder, startCheckout } from "../lib/api/checkout.functions";
 import { useCart } from "../lib/cart";
-import { BUSINESS, FREE_DELIVERY_FROM, RAJASTHAN_ONLY, STATES, deliveryLabel, isRajasthanPin, normalizePhone, rs } from "../lib/store";
+import { BUSINESS, FREE_DELIVERY_FROM, PRODUCTS, RAJASTHAN_ONLY, STATES, deliveryLabel, isRajasthanPin, normalizePhone, rs } from "../lib/store";
+
+type Via = "e1" | "e2" | "wa";
+const VIAS: Via[] = ["e1", "e2", "wa"];
 
 export const Route = createFileRoute("/checkout")({
+  // ?resume=<order code>&t=<token>&src=e1|e2|wa comes from a "Dobara pay karein" reminder.
+  validateSearch: (search: Record<string, unknown>): { resume?: string; t?: string; src?: Via } => ({
+    resume: typeof search.resume === "string" ? search.resume : undefined,
+    t: typeof search.t === "string" ? search.t : undefined,
+    src: VIAS.includes(search.src as Via) ? (search.src as Via) : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Checkout | LADDU.CO" }, { name: "robots", content: "noindex" }],
     links: [{ rel: "canonical", href: "/checkout" }],
@@ -132,6 +141,38 @@ function Checkout() {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const search = Route.useSearch();
+  const [resumed, setResumed] = useState<{ code: string; token: string; via: Via } | null>(null);
+  const [resumeNote, setResumeNote] = useState<{ kind: "filled" | "paid"; code: string; orderUrl?: string } | null>(null);
+  const resumeTried = useRef(false);
+  const [resumeLoading, setResumeLoading] = useState(Boolean(search.resume && search.t));
+
+  // Reminder link: put the earlier order's items and details back in.
+  useEffect(() => {
+    if (!ready || resumeTried.current || !search.resume || !search.t) return;
+    resumeTried.current = true;
+    const code = search.resume;
+    const token = search.t;
+    void getResumeOrder({ data: { code, t: token } })
+      .then((r) => {
+        if (r.ok) {
+          clear();
+          for (const p of PRODUCTS) {
+            const q = r.cart[p.id];
+            if (q) setQty(p.id, q);
+          }
+          setForm({ ...r.customer, state: r.customer.state || EMPTY.state });
+          setResumed({ code: r.code, token, via: search.src ?? "e1" });
+          setResumeNote({ kind: "filled", code: r.code });
+        } else if (r.reason === "paid") {
+          setResumeNote({ kind: "paid", code, orderUrl: r.orderUrl });
+        }
+      })
+      .catch(() => {
+        // the normal checkout still works
+      })
+      .finally(() => setResumeLoading(false));
+  }, [ready, search.resume, search.t, search.src, clear, setQty]);
 
   const set = (k: keyof Form) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -171,6 +212,7 @@ function Checkout() {
             giftMessage: form.giftMessage.trim(),
           },
           origin: window.location.origin,
+          ...(resumed ? { resume: resumed } : {}),
         },
       });
       if (!res.ok) {
@@ -256,10 +298,26 @@ function Checkout() {
     }
   }
 
-  if (!ready) {
+  if (!ready || resumeLoading) {
     return (
       <Page cartBar={false}>
         <section className="checkout-page"><div className="wrap"><p className="muted">Loading...</p></div></section>
+      </Page>
+    );
+  }
+
+  if (resumeNote?.kind === "paid") {
+    return (
+      <Page cartBar={false}>
+        <section className="checkout-page">
+          <div className="wrap">
+            <div className="notice-card">
+              <h1>Yeh order pay ho chuka hai</h1>
+              <p>Order {resumeNote.code} ka payment hume mil gaya hai. Dobara pay karne ki zaroorat nahi.</p>
+              {resumeNote.orderUrl ? <a href={resumeNote.orderUrl} className="btn-solid">Order dekhiye</a> : null}
+            </div>
+          </div>
+        </section>
       </Page>
     );
   }
@@ -288,6 +346,11 @@ function Checkout() {
         <div className="wrap">
           <Link to="/" className="back-link">← Shopping jaari rakhein</Link>
           <h1 className="checkout-title">Checkout</h1>
+          {resumeNote?.kind === "filled" ? (
+            <p className="resume-note" role="status">
+              Aapka pichla order ({resumeNote.code}) wapas bhar diya hai. Details ek baar check kariye aur Pay dabaiye.
+            </p>
+          ) : null}
           <form className="checkout-grid" onSubmit={onSubmit} noValidate>
             <div className="panel">
               <h2>Delivery ki jaankari</h2>

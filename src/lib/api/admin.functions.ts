@@ -5,6 +5,7 @@ import { bindings } from "../bindings.server";
 import { emailReady } from "../email.server";
 import { maybeSendShipped, trackingUrlFor, type OrderRow } from "../orders.server";
 import { activeGateway } from "../gateway.server";
+import { recoveryList, type RecoveryItem, type RecoveryStats } from "../recovery.server";
 import { safeEqual, secret } from "../secrets.server";
 
 type Fail = { ok: false; code: string; message: string };
@@ -94,4 +95,34 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     let shippedEmail = false;
     if (data.status === "shipped") shippedEmail = await maybeSendShipped(DB, data.code);
     return { ok: true as const, shippedEmail };
+  });
+
+export type { RecoveryItem, RecoveryStats };
+
+// Customers who filled checkout but did not pay (last 7 days), for WhatsApp / call follow-up.
+export const adminRecovery = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().max(200) }))
+  .handler(async ({ data }): Promise<{ ok: true; items: RecoveryItem[]; stats: RecoveryStats } | Fail> => {
+    const bad = checkPassword(data.password);
+    if (bad) return bad;
+    const { DB } = bindings();
+    if (!DB) return fail("db_off", "Database abhi ready nahi hai.");
+    const { items, stats } = await recoveryList(DB);
+    return { ok: true, items, stats };
+  });
+
+export const adminMarkContacted = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().max(200), code: z.string().max(40), contacted: z.boolean() }))
+  .handler(async ({ data }) => {
+    const bad = checkPassword(data.password);
+    if (bad) return bad;
+    const { DB } = bindings();
+    if (!DB) return fail("db_off", "Database abhi ready nahi hai.");
+    await DB.prepare(
+      `UPDATE orders SET contacted_at = CASE WHEN ? THEN datetime('now') ELSE NULL END
+       WHERE code = ? AND status IN ('pending', 'failed')`,
+    )
+      .bind(data.contacted ? 1 : 0, data.code)
+      .run();
+    return { ok: true as const };
   });
